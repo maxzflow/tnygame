@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เกมทายวัตถุดิบ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #000; color: #fff; font-family: 'Kanit', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        h1 { color: #c49a6c; margin: 10px 0; text-shadow: 2px 2px 4px rgba(255,255,255,0.1); }
+        
+        .score-board { 
+            background: #222; padding: 10px 20px; border-radius: 50px; 
+            margin-bottom: 20px; border: 1px solid #444; display: flex; gap: 20px;
+        }
+        .highlight { color: #c49a6c; font-weight: bold; font-size: 1.2rem; }
+
+        .game-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 600px; width: 100%; }
+        
+        .card { height: 100px; perspective: 1000px; cursor: pointer; }
+        .card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s; transform-style: preserve-3d; }
+        .card.flipped .card-inner { transform: rotateY(180deg); }
+        .card-front, .card-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; border-radius: 8px; font-weight: bold; }
+        .card-front { background: #fff; color: #000; font-size: 2rem; }
+        .card-back { background: #c49a6c; color: #000; transform: rotateY(180deg); border: 2px solid #fff; }
+
+        .btn-next { 
+            margin-top: 30px; padding: 12px 30px; background: #28a745; color: white; 
+            border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; display: none; 
+            font-family: 'Kanit', sans-serif;
+        }
+        .btn-reset {
+            margin-top: 10px; background: transparent; border: 1px solid #555; color: #888; 
+            padding: 5px 15px; border-radius: 5px; cursor: pointer;
+        }
+        
+        /* Loading */
+        #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; justify-content: center; align-items: center; z-index: 999; }
+    </style>
+</head>
+<body>
+
+    <div id="loading">กำลังโหลดข้อมูลเกม...</div>
+
+    <h1>ตัวอย่างเกม</h1>
+    <h2 id="round-label">รอบที่ 1</h2>
+
+    <div class="score-board">
+        <div>คะแนนรอบนี้: <span id="round-score" class="highlight">0</span></div>
+        <div>รวมทั้งหมด: <span id="total-score" class="highlight">0</span></div>
+    </div>
+
+    <div class="game-grid" id="board"></div>
+    
+    <button class="btn-next" id="btn-next" onclick="nextRound()">ไปเกมรอบถัดไป >></button>
+    <button class="btn-reset" onclick="location.reload()">รีเซ็ตเกมใหม่</button>
+
+    <script>
+        let allGameData = [];
+        let currentRoundIdx = 0;
+        let scores = [0, 0, 0];
+
+        // 1. ดึงข้อมูลจาก API เมื่อเปิดเว็บ
+        fetch('api.php')
+            .then(res => res.json())
+            .then(data => {
+                allGameData = data;
+                document.getElementById('loading').style.display = 'none';
+                renderGame();
+            })
+            .catch(err => {
+                document.getElementById('loading').innerText = "โหลดข้อมูลล้มเหลว (ตรวจสอบ api.php)";
+            });
+
+        function renderGame() {
+            const board = document.getElementById('board');
+            const btnNext = document.getElementById('btn-next');
+            const roundLabel = document.getElementById('round-label');
+            
+            board.innerHTML = '';
+            
+            // ถ้าเล่นครบ 3 รอบ
+            if (currentRoundIdx >= 3) {
+                roundLabel.innerText = "จบเกม!";
+                board.innerHTML = `
+                    <div style="grid-column: span 3; text-align: center;">
+                        <h1 style="font-size: 4rem; color: #28a745;">${scores.reduce((a,b)=>a+b,0)} คะแนน</h1>
+                        <p>ขอบคุณที่ร่วมสนุก</p>
+                    </div>
+                `;
+                btnNext.style.display = 'none';
+                return;
+            }
+
+            // ตั้งค่าหน้าจอ
+            roundLabel.innerText = `เกมรอบที่ ${currentRoundIdx + 1}`;
+            btnNext.style.display = 'block';
+            btnNext.innerText = (currentRoundIdx === 2) ? "จบเกม / สรุปผล" : "ไปเกมรอบถัดไป >>";
+
+            // สร้างการ์ด
+            const words = allGameData[currentRoundIdx] || [];
+            words.forEach((word, idx) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-inner">
+                        <div class="card-front">${idx + 1}</div>
+                        <div class="card-back">${word}</div>
+                    </div>
+                `;
+                
+                // คลิกเปิดป้าย
+                card.addEventListener('click', function() {
+                    if(!this.classList.contains('flipped')) {
+                        this.classList.add('flipped');
+                        scores[currentRoundIdx]++;
+                        updateScoreUI();
+                    }
+                });
+                
+                board.appendChild(card);
+            });
+            
+            updateScoreUI();
+        }
+
+        function nextRound() {
+            currentRoundIdx++;
+            renderGame();
+        }
+
+        function updateScoreUI() {
+            document.getElementById('round-score').innerText = (currentRoundIdx < 3) ? scores[currentRoundIdx] : '-';
+            document.getElementById('total-score').innerText = scores.reduce((a,b)=>a+b,0);
+        }
+    </script>
+</body>
+</html>
