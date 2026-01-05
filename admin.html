@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดการคำศัพท์ - Zifo Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #1e1e1e; color: #fff; font-family: 'Kanit', sans-serif; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { color: #c49a6c; text-align: center; margin-bottom: 30px; }
+        
+        .game-section {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #444;
+        }
+        .game-section h3 { color: #c49a6c; margin-top: 0; border-bottom: 1px solid #555; padding-bottom: 10px; }
+        
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        input { 
+            background: #444; border: 1px solid #555; color: #fff; 
+            padding: 10px; border-radius: 5px; width: 100%; box-sizing: border-box; 
+            font-family: 'Kanit', sans-serif;
+        }
+        input:focus { border-color: #c49a6c; outline: none; background: #555; }
+        
+        .btn-save {
+            background: #28a745; color: white; border: none; padding: 15px; 
+            width: 100%; font-size: 1.2rem; border-radius: 8px; cursor: pointer; 
+            font-family: 'Kanit', sans-serif; margin-top: 20px;
+            transition: 0.3s;
+        }
+        .btn-save:hover { background: #218838; transform: scale(1.02); }
+        .loading { text-align: center; color: #888; margin-top: 50px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚙️ หลังบ้านจัดการคำศัพท์ (3 เกม)</h1>
+        <div id="editor-area">
+            <div class="loading">กำลังเชื่อมต่อฐานข้อมูล...</div>
+        </div>
+        <button class="btn-save" onclick="saveData()">💾 บันทึกการเปลี่ยนแปลง</button>
+    </div>
+
+    <script>
+        // 1. โหลดข้อมูลเดิมมาแสดง
+        fetch('api.php')
+            .then(res => res.json())
+            .then(data => {
+                const area = document.getElementById('editor-area');
+                area.innerHTML = '';
+                
+                // วนลูปสร้างช่องกรอก 3 ชุด (เกม 1-3)
+                for(let i=0; i<3; i++) {
+                    const words = data[i] || Array(9).fill("");
+                    
+                    let html = `
+                        <div class="game-section">
+                            <h3>เกมรอบที่ ${i+1}</h3>
+                            <div class="grid">
+                    `;
+                    
+                    words.forEach((word, idx) => {
+                        html += `<input type="text" id="g${i}-w${idx}" value="${word}" placeholder="ป้ายที่ ${idx+1}">`;
+                    });
+                    
+                    html += `</div></div>`;
+                    area.innerHTML += html;
+                }
+            })
+            .catch(err => alert('เชื่อมต่อ Database ไม่ได้ กรุณาเช็คไฟล์ db.php'));
+
+        // 2. บันทึกข้อมูล
+        function saveData() {
+            const payload = [];
+            for(let i=0; i<3; i++) {
+                const roundWords = [];
+                for(let j=0; j<9; j++) {
+                    const val = document.getElementById(`g${i}-w${j}`).value;
+                    roundWords.push(val);
+                }
+                payload.push(roundWords);
+            }
+
+            fetch('api.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message);
+            })
+            .catch(err => alert('เกิดข้อผิดพลาดในการบันทึก'));
+        }
+    </script>
+</body>
+</html>
