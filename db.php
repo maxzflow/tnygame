@@ -1,9 +1,9 @@
 <?php
 // ตั้งค่า Database (แก้ตรงนี้ให้ตรงกับโฮสต์ของคุณ)
-$host = 'localhost';
-$dbname = 'ชื่อฐานข้อมูลของคุณ'; 
-$username = 'ชื่อผู้ใช้'; 
-$password = 'รหัสผ่าน'; 
+$host = 'sql311.infinityfree.com';
+$dbname = 'if0_40830265_tnygame1'; 
+$username = 'if0_40830265'; 
+$password = 'Search12604'; 
 
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
